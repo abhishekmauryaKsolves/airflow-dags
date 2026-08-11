@@ -5,7 +5,7 @@ from airflow.providers.standard.operators.python import PythonOperator
 
 
 def github_test():
-    print("🔥 GitHub → GitDagBundle → Airflow is working!")
+    print("GitHub -> GitDagBundle -> Airflow is working!")
 
 
 with DAG(
