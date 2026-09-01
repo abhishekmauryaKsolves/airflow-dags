@@ -1,0 +1,34 @@
+name: Deploy DAGs to MinIO
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'dags/**'
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, Linux, X64, airflow-minio]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure MinIO
+        env:
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+        run: |
+          mc alias set github-minio \
+            http://127.0.0.1:9000 \
+            "$MINIO_ACCESS_KEY" \
+            "$MINIO_SECRET_KEY"
+
+      - name: Upload DAGs to MinIO
+        run: |
+          mc cp --recursive dags/ github-minio/airflow-dags/dags/
+
+      - name: Verify upload
+        run: |
+          mc ls github-minio/airflow-dags/dags/
