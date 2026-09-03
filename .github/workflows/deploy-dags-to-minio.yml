@@ -19,10 +19,10 @@ jobs:
   # ==========================================================
   # 1. VALIDATE DAGs
   # ==========================================================
-   validate:
-     runs-on: [self-hosted, Linux, X64, airflow-minio]
+  validate:
+    runs-on: [self-hosted, Linux, X64, airflow-minio]
 
-     steps:
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -79,7 +79,6 @@ jobs:
       - name: Verify Staging upload
         run: |
           mc ls github-minio/airflow-dags-staging/dags/
-
 
   # ==========================================================
   # 3. DEPLOY TO PRODUCTION
