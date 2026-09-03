@@ -7,13 +7,34 @@ on:
     paths:
       - 'dags/**'
 
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - production
+
+      reason:
+        description: 'Reason for deployment'
+        required: true
+        type: string
+
 jobs:
   deploy:
     runs-on: [self-hosted, Linux, X64, airflow-minio]
 
+    environment: production
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Show deployment information
+        run: |
+          echo "Environment: production"
+          echo "Reason: ${{ inputs.reason || 'Automatic deployment from main' }}"
 
       - name: Configure MinIO
         env:
