@@ -19,31 +19,28 @@ jobs:
   # ==========================================================
   # 1. VALIDATE DAGs
   # ==========================================================
-  validate:
-    runs-on: [self-hosted, Linux, X64, airflow-minio]
+   validate:
+     runs-on: [self-hosted, Linux, X64, airflow-minio]
 
-    steps:
+     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Check Python syntax
         run: |
-          python -m compileall -q dags/
+          /home/abhishekksi299/airflow_local/venv/bin/python \
+            -m compileall -q dags/
 
       - name: Validate DAG imports
         run: |
-          export AIRFLOW_HOME=~/airflow_local/airflow_home
-          export PATH=~/airflow_local/venv/bin:$PATH
-
           for dag_file in dags/*.py; do
             echo "Validating: $dag_file"
-            python "$dag_file"
+            /home/abhishekksi299/airflow_local/venv/bin/python "$dag_file"
           done
 
       - name: Validation successful
         run: |
           echo "All DAG validation checks passed."
-
 
   # ==========================================================
   # 2. DEPLOY TO STAGING
