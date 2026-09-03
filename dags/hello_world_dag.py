@@ -4,7 +4,7 @@ from datetime import datetime
 
 
 def hello_world():
-    print("Hello World i am abhishek presenting something to you")
+    print("Hello World i am abhishek")
 
 
 with DAG(
