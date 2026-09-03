@@ -9,23 +9,51 @@ on:
 
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'Target environment'
-        required: true
-        type: choice
-        options:
-          - production
-
       reason:
         description: 'Reason for deployment'
         required: true
         type: string
 
 jobs:
-  deploy:
+
+  # ==========================================================
+  # 1. VALIDATE DAGs
+  # ==========================================================
+  validate:
     runs-on: [self-hosted, Linux, X64, airflow-minio]
 
-    environment: production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check Python syntax
+        run: |
+          python -m compileall -q dags/
+
+      - name: Validate DAG imports
+        run: |
+          export AIRFLOW_HOME=~/airflow_local/airflow_home
+          export PATH=~/airflow_local/venv/bin:$PATH
+
+          for dag_file in dags/*.py; do
+            echo "Validating: $dag_file"
+            python "$dag_file"
+          done
+
+      - name: Validation successful
+        run: |
+          echo "All DAG validation checks passed."
+
+
+  # ==========================================================
+  # 2. DEPLOY TO STAGING
+  # ==========================================================
+  deploy-staging:
+    needs: validate
+
+    runs-on: [self-hosted, Linux, X64, airflow-minio]
+
+    environment: staging
 
     steps:
       - name: Checkout repository
@@ -33,7 +61,7 @@ jobs:
 
       - name: Show deployment information
         run: |
-          echo "Environment: production"
+          echo "Environment: staging"
           echo "Reason: ${{ inputs.reason || 'Automatic deployment from main' }}"
 
       - name: Configure MinIO
@@ -46,10 +74,50 @@ jobs:
             "$MINIO_ACCESS_KEY" \
             "$MINIO_SECRET_KEY"
 
-      - name: Upload DAGs to MinIO
+      - name: Upload DAGs to Staging
         run: |
-          mc cp --recursive dags/ github-minio/airflow-dags/dags/
+          mc cp --recursive dags/ \
+            github-minio/airflow-dags-staging/dags/
 
-      - name: Verify upload
+      - name: Verify Staging upload
+        run: |
+          mc ls github-minio/airflow-dags-staging/dags/
+
+
+  # ==========================================================
+  # 3. DEPLOY TO PRODUCTION
+  # ==========================================================
+  deploy-production:
+    needs: deploy-staging
+
+    runs-on: [self-hosted, Linux, X64, airflow-minio]
+
+    environment: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Show deployment information
+        run: |
+          echo "Environment: production"
+          echo "Reason: ${{ inputs.reason || 'Promotion from staging' }}"
+
+      - name: Configure MinIO
+        env:
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+        run: |
+          mc alias set github-minio \
+            http://127.0.0.1:9000 \
+            "$MINIO_ACCESS_KEY" \
+            "$MINIO_SECRET_KEY"
+
+      - name: Upload DAGs to Production
+        run: |
+          mc cp --recursive dags/ \
+            github-minio/airflow-dags/dags/
+
+      - name: Verify Production upload
         run: |
           mc ls github-minio/airflow-dags/dags/
